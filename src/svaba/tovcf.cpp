@@ -16,8 +16,13 @@ namespace opt {
   static std::string input_file;
   static std::string bam;
   static std::string analysis_id;
+  static bool pass_only = false; // only output PASS variants
   static int verbose = 0;
 }
+
+enum { 
+  OPT_PASS_ONLY
+};
 
 static const char* shortopts = "hi:b:va:";
 static const struct option longopts[] = {
@@ -25,7 +30,8 @@ static const struct option longopts[] = {
   { "input-bps",               required_argument, NULL, 'i'},
   { "bam",                     required_argument, NULL, 'b'},
   { "verbose",                 no_argument, NULL, 'v' },
-  { "id-string",               required_argument, NULL, 'a'},  
+  { "id-string",               required_argument, NULL, 'a'},
+  { "pass-only",               no_argument, NULL, OPT_PASS_ONLY },
   { NULL, 0, NULL, 0 }
 };
 
@@ -40,6 +46,8 @@ static const char *TOVCF_USAGE_MESSAGE =
 "  -a, --id-string                      String specifying the analysis ID to be used as part of ID common.\n"  
 "  -i, --input-bps                      Original bps.txt.gz file\n"
 "  -b, --bam                            BAM file used to grab header from\n"
+"  Optional input\n"
+"  --pass-only                          Only output PASS variants. Default: false\n"
 "\n";
 
 // parse the command line options
@@ -57,7 +65,8 @@ void parseToVCFOptions(int argc, char** argv) {
     case 'i': arg >> opt::input_file; break;
     case 'v': opt::verbose = 1; break;
     case 'a': arg >> opt::analysis_id; break;
-    case 'b': arg >> opt::bam; break; 
+    case 'b': arg >> opt::bam; break;
+    case OPT_PASS_ONLY: opt::pass_only = true; break;
     }
   }
 
@@ -130,7 +139,7 @@ void runToVCF(int argc, char** argv) {
 
   
   // convert to VCF
-  VCFFile snowvcf(opt::input_file, opt::analysis_id, bwalker.Header(), header, true,
+  VCFFile snowvcf(opt::input_file, opt::analysis_id, bwalker.Header(), header, !opt::pass_only,
 		  opt::verbose > 0);
   std::string basename = opt::analysis_id + ".svaba.unfiltered.";
   snowvcf.include_nonpass = true;

@@ -40,6 +40,7 @@ namespace opt {
   static double lod_somatic = 6; // LOD that normal is REF
   static double lod_somatic_db = 10; // same, but at DBSNP (want higher bc we have prior that its germline)
   static double scale_error = 1; 
+  static bool pass_only = false; // only output PASS variants
 }
 
 enum { 
@@ -48,7 +49,8 @@ enum {
   OPT_LOD_SOMATIC,
   OPT_LOD_SOMATIC_DB,
   OPT_READ_TRACK,
-  OPT_SCALE_ERRORS
+  OPT_SCALE_ERRORS,
+  OPT_PASS_ONLY
 };
 
 
@@ -68,6 +70,7 @@ static const struct option longopts[] = {
   { "lod-somatic-dbsnp",       required_argument, NULL, OPT_LOD_SOMATIC_DB },
   { "scale-errors",            required_argument, NULL, OPT_SCALE_ERRORS },
   { "read-tracking",           no_argument, NULL, OPT_READ_TRACK },
+  { "pass-only",               no_argument, NULL, OPT_PASS_ONLY },
   { "dbsnp-vcf",               required_argument, NULL, 'D' },
   { NULL, 0, NULL, 0 }
 };
@@ -93,6 +96,7 @@ static const char *BP_USAGE_MESSAGE =
 "      --scale-errors                   Scale the priors that a site is artifact at given repeat count. 0 means assume low (const) error rate [1]\n"
 "  Optional input\n"                       
 "      --read-tracking                  Track supporting reads by qname. Increases file sizes. [off]\n"
+"      --pass-only                      Only output PASS variants. Default: false\n"
 "\n";
 
 // parse the command line options
@@ -117,6 +121,7 @@ void parseBreakOptions(int argc, char** argv) {
     case OPT_LOD_SOMATIC_DB: arg >> opt::lod_somatic_db; break;
     case OPT_READ_TRACK: opt::read_tracking = false; break;
     case OPT_SCALE_ERRORS: arg >> opt::scale_error; break;
+    case OPT_PASS_ONLY: opt::pass_only = true; break;
     case 'b': arg >> opt::bam; break; 
     }
   }
@@ -249,7 +254,7 @@ void runRefilterBreakpoints(int argc, char** argv) {
     if (opt::verbose)
       std::cerr << "...making the primary VCFs (unfiltered and filtered) from file " << new_bps_file << std::endl;
     
-    VCFFile snowvcf(new_bps_file, opt::analysis_id, bwalker.Header(), header, true,
+    VCFFile snowvcf(new_bps_file, opt::analysis_id, bwalker.Header(), header, !opt::pass_only,
 		    opt::verbose > 0);
     
     std::string basename = opt::analysis_id + ".svaba.unfiltered.";

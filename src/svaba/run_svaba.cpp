@@ -137,6 +137,7 @@ namespace opt {
   // input options
   static bool override_reference_check = false; // allow the user, with caution, to use two different reference genomes 
                                                 // (one for BAM alignment, one as ref for svaba)
+  static bool pass_only = false; // only output PASS variants
 }
 
 enum { 
@@ -151,7 +152,8 @@ enum {
   OPT_NUM_ASSEMBLY_ROUNDS,
   OPT_GERMLINE,
   OPT_SCALE_ERRORS,
-  OPT_OVERRIDE_REFERENCE_CHECK
+  OPT_OVERRIDE_REFERENCE_CHECK,
+  OPT_PASS_ONLY
 };
 
 static const char* shortopts = "hzIAt:n:p:v:r:G:e:k:c:a:m:B:D:Y:S:L:s:V:R:K:E:C:x:M:";
@@ -189,6 +191,7 @@ static const struct option longopts[] = {
   { "max-reads-mate-region",   required_argument, NULL, 'M' },
   { "num-assembly-rounds",     required_argument, NULL, OPT_NUM_ASSEMBLY_ROUNDS },
   { "override-reference-check",no_argument, NULL, OPT_OVERRIDE_REFERENCE_CHECK},
+  { "pass-only",               no_argument, NULL, OPT_PASS_ONLY },
   { NULL, 0, NULL, 0 }
 };
 
@@ -225,6 +228,7 @@ static const char *RUN_USAGE_MESSAGE =
 "      --num-to-sample                  When learning about inputs, number of reads to sample. [2,000,000]\n"
 "      --hp                             Highly parallel. Don't write output until completely done. More memory, but avoids all thread-locks.\n"
 "      --override-reference-check       With much caution, allows user to run svaba with different reference genomes for BAMs and -G\n"
+"      --pass-only                      Only output PASS variants. Default: false\n"
 "  Output options\n"
 "  -A, --all-contigs                    Output all contigs that were assembled, regardless of mapping or length. [off]\n"
 "      --read-tracking                  Track supporting reads by qname. Increases file sizes. [off]\n"
@@ -1012,7 +1016,7 @@ void makeVCFs() {
   // primary VCFs
   if (read_access_test(file)) {
     WRITELOG("...making the primary VCFs (unfiltered and filtered) from file " + file, opt::verbose, true);
-    VCFFile snowvcf(file, opt::analysis_id, bwa_header, header, !false,
+    VCFFile snowvcf(file, opt::analysis_id, bwa_header, header, !opt::pass_only,
 		    opt::verbose > 0);
 
     string basename = opt::analysis_id + ".svaba.unfiltered.";
@@ -1058,6 +1062,7 @@ void parseRunOptions(int argc, char** argv) {
     case 'L': arg >> opt::mate_lookup_min; break;
     case 'h': help = true; break;
     case OPT_OVERRIDE_REFERENCE_CHECK : opt::override_reference_check = true; break;
+    case OPT_PASS_ONLY : opt::pass_only = true; break;
     case 'x' : arg >> opt::max_reads_per_assembly; break;
     case 'M' : arg >> opt::mate_region_lookup_limit; break;
     case 'A' : opt::all_contigs = true; break;
